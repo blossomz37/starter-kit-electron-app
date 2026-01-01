@@ -17,7 +17,21 @@ build/
 
 # OS
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+ehthumbs_vista.db
 Thumbs.db
+Thumbs.db:encryptable
+Desktop.ini
+
+# Linux
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
 
 # Logs
 logs/

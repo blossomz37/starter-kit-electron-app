@@ -8,8 +8,8 @@
     "dev": "vite",
     "build:renderer": "vite build",
     "build:main": "esbuild src/main.ts --bundle --platform=node --outfile=dist/main.js --external:electron --format=esm",
-    "build": "npm run build:main && npm run build:renderer",
-    "start": "npm run build && electron .",
+    "build": "npm run build:renderer && npm run build:main",
+    "start": "npm run build && electron . --no-sandbox",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

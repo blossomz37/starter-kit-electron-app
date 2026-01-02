@@ -8,6 +8,9 @@ dist/
 out/
 build/
 
+# Test outputs
+tests/out/
+
 # IDEs
 .vscode/
 .idea/

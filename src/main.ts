@@ -30,6 +30,35 @@ ipcMain.handle('open-external', async (_event, url: string) => {
   await shell.openExternal(url);
 });
 
+ipcMain.handle(
+  'openrouter-chat',
+  async (
+    _event,
+    payload: {
+      apiKey: string;
+      body: unknown;
+    }
+  ) => {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${payload.apiKey}`,
+        'Content-Type': 'application/json',
+        // Optional OpenRouter attribution headers.
+        'X-Title': 'starter-kit-electron-app',
+      },
+      body: JSON.stringify(payload.body),
+    });
+
+    const text = await response.text();
+    if (!response.ok) {
+      throw new Error(`OpenRouter error ${response.status}: ${text}`);
+    }
+
+    return JSON.parse(text) as unknown;
+  }
+);
+
 app.whenReady().then(() => {
   createWindow();
 

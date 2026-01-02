@@ -38,6 +38,8 @@ This branch includes a minimal **Simple Chatbot** app built on the starter kit:
 	- Chat export as Markdown (includes image links)
 	- Image downloads with timestamps in filenames
 
+Note: The Markdown export links images by filename (it does not embed base64 data URLs).
+
 The underlying starter kit includes:
 - **Electron** - Desktop application framework with secure defaults (contextIsolation enabled, nodeIntegration disabled)
 - **Vite** - Fast build tool and dev server with hot module replacement

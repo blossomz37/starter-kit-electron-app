@@ -9,9 +9,10 @@ This is an **Electron desktop application** with a split-process architecture:
 
 ## Build System
 
-Two separate build pipelines run in sequence:
+Three build steps run in sequence:
 1. **Renderer**: `vite build` → outputs to `dist/` (HTML/CSS/JS bundles)
 2. **Main**: `esbuild src/main.ts --bundle --platform=node --outfile=dist/main.js`
+3. **Preload**: `esbuild src/preload.ts --bundle --platform=node --outfile=dist/preload.cjs --format=cjs`
 
 **Critical**: Main process uses ES modules (`type: "module"` in package.json), requires `import.meta.url` for `__dirname` polyfill (see [src/main.ts](../src/main.ts) lines 5-6).
 
@@ -40,12 +41,16 @@ Uses **shadcn/ui** with Tailwind CSS:
 
 **New UI components**: Add to `src/components/ui/` via shadcn CLI or manually following existing patterns
 **New routes/views**: This is a single-page app — extend [src/app.tsx](../src/app.tsx) or add routing library
-**IPC communication**: Not yet implemented — if adding, use Electron's contextBridge pattern with preload scripts
+**IPC communication**: Implemented via `contextBridge` in `src/preload.ts` and `ipcMain.handle` in `src/main.ts`.
+- Renderer stays sandboxed (`nodeIntegration: false`, `contextIsolation: true`).
+- Add new capabilities by extending `window.electronAPI` in preload + adding matching IPC handlers in main.
 
 ## Key Files
 
 - [src/main.ts](../src/main.ts): BrowserWindow config, app lifecycle
+- [src/preload.ts](../src/preload.ts): Secure IPC bridge (contextBridge)
 - [src/app.tsx](../src/app.tsx): Main React component tree
+- [tests/openrouter-smoke.mjs](../tests/openrouter-smoke.mjs): OpenRouter smoke test (writes outputs to `tests/out/`)
 - [vite.config.ts](../vite.config.ts): Base path `./ ` required for Electron file:// protocol
 - [components.json](../components.json): shadcn/ui setup (baseColor: neutral, cssVariables: true)
 

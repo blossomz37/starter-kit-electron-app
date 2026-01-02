@@ -30,6 +30,10 @@ This project is especially well-suited for:
 
 ## Features
 
+## Preview
+
+![Simple Chatbot preview](simple_chatbot_screenshot.jpg)
+
 This branch includes a minimal **Simple Chatbot** app built on the starter kit:
 - **OpenRouter chat + image generation** - Send text prompts or request image outputs
 - **Session-only API key** - Key is kept in memory (not written to disk)

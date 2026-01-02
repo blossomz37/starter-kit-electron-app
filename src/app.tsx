@@ -1,6 +1,22 @@
 import { Button } from '@/components/ui/button';
 
+const LINKS = {
+  learnMore: 'https://dev.bwrd.eu/blogs/create-electron-app',
+  documentation: 'https://www.electronjs.org/docs/latest',
+} as const;
+
 function App() {
+  const openExternal = (url: string) => {
+    // In Electron, prefer shell.openExternal via preload/IPC.
+    if (window.electronAPI?.openExternal) {
+      void window.electronAPI.openExternal(url);
+      return;
+    }
+
+    // Fallback for non-Electron environments (e.g., running just Vite).
+    window.open(url, '_blank', 'noreferrer');
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-16">
@@ -47,10 +63,12 @@ function App() {
           </div>
 
           <div className="flex gap-4 flex-wrap">
-            <Button>Get Started</Button>
-            <Button variant="secondary">Learn More</Button>
-            <Button variant="outline">Documentation</Button>
-            <Button variant="ghost">GitHub</Button>
+            <Button variant="secondary" onClick={() => openExternal(LINKS.learnMore)}>
+              Learn More
+            </Button>
+            <Button variant="outline" onClick={() => openExternal(LINKS.documentation)}>
+              Documentation
+            </Button>
           </div>
 
           <div className="rounded-lg bg-muted p-4">

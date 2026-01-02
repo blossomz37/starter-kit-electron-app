@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -12,17 +12,23 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      preload: path.join(__dirname, 'preload.js'),
     },
   });
 
   // Load the index.html from the dist folder
-  mainWindow.loadFile(path.join(__dirname, '../index.html'));
+  // (When bundled, `__dirname` points at `dist/` where `main.js` is.)
+  mainWindow.loadFile(path.join(__dirname, 'index.html'));
 
   // Open DevTools in development
   if (process.env.NODE_ENV === 'development') {
     mainWindow.webContents.openDevTools();
   }
 }
+
+ipcMain.handle('open-external', async (_event, url: string) => {
+  await shell.openExternal(url);
+});
 
 app.whenReady().then(() => {
   createWindow();

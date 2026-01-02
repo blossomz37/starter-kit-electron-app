@@ -16,9 +16,17 @@ const MODELS: Array<{ id: string; label: string; kind: ModelKind }> = [
 
 type ChatMessage = {
   role: 'user' | 'assistant';
+  createdAt: string;
   text: string;
   images?: string[];
 };
+
+function imageExtensionFromDataUrl(url: string): string {
+  if (url.startsWith('data:image/png')) return 'png';
+  if (url.startsWith('data:image/jpeg')) return 'jpg';
+  if (url.startsWith('data:image/webp')) return 'webp';
+  return 'png';
+}
 
 function contentToText(content: unknown): string {
   if (typeof content === 'string') return content;
@@ -47,12 +55,21 @@ function messagesToMarkdown(messages: ChatMessage[]): string {
     lines.push('');
     lines.push(message.text || '(no text)');
     lines.push('');
+    if (message.images?.length) {
+      lines.push('### Images');
+      for (let i = 0; i < message.images.length; i++) {
+        const url = message.images[i];
+        lines.push(`- [image-${i + 1}](${url})`);
+      }
+      lines.push('');
+    }
   }
 
   return lines.join('\n');
 }
 
 function App() {
+  const [isSettingsCollapsed, setIsSettingsCollapsed] = useState(false);
   const [apiKey, setApiKey] = useState('');
   const [modelId, setModelId] = useState(MODELS[0]?.id ?? '');
   const [prompt, setPrompt] = useState('');
@@ -61,7 +78,6 @@ function App() {
   const [error, setError] = useState<string | null>(null);
 
   const selectedModel = MODELS.find((m) => m.id === modelId) ?? MODELS[0];
-  const hasImages = messages.some((m: ChatMessage) => (m.images?.length ?? 0) > 0);
 
   const downloadMarkdown = () => {
     const markdown = messagesToMarkdown(messages);
@@ -83,7 +99,7 @@ function App() {
       return;
     }
 
-    const userMessage: ChatMessage = { role: 'user', text: trimmed };
+    const userMessage: ChatMessage = { role: 'user', createdAt: new Date().toISOString(), text: trimmed };
     const requestMessages = [...messages, userMessage].map((m) => ({
       role: m.role,
       content: m.text,
@@ -114,6 +130,7 @@ function App() {
         ...prev,
         {
           role: 'assistant',
+          createdAt: new Date().toISOString(),
           text: text || (images?.length ? '(image generated)' : ''),
           images: images?.length ? images : undefined,
         },
@@ -138,65 +155,77 @@ function App() {
           </p>
         </div>
 
-        <div className="rounded-lg border bg-card p-4 space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-card-foreground flex items-center gap-2">
-              OpenRouter API Key
-              <span
-                className="text-muted-foreground"
-                title="Saved only for this session (not written to disk)."
-              >
-                ?
-              </span>
-            </label>
-            <input
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="sk-or-..."
-              className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-card-foreground">Model</label>
-            <select
-              value={modelId}
-              onChange={(e) => setModelId(e.target.value)}
-              className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              {MODELS.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex gap-3 flex-wrap">
+        <div className="rounded-lg border bg-card p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-sm font-medium text-card-foreground">Settings</div>
             <Button
-              variant="outline"
-              disabled={messages.length === 0 || hasImages}
-              onClick={downloadMarkdown}
-              title={
-                hasImages
-                  ? 'Markdown export is available for text-only conversations.'
-                  : 'Download conversation as Markdown.'
-              }
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsSettingsCollapsed((v) => !v)}
+              aria-expanded={!isSettingsCollapsed}
             >
-              Download Markdown
+              {isSettingsCollapsed ? 'Show' : 'Hide'}
             </Button>
           </div>
 
-          {error ? (
-            <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-foreground">
-              {error}
+          {isSettingsCollapsed ? null : (
+            <div className="pt-4 space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-card-foreground flex items-center gap-2">
+                  OpenRouter API Key
+                  <span
+                    className="text-muted-foreground"
+                    title="Saved only for this session (not written to disk)."
+                  >
+                    ?
+                  </span>
+                </label>
+                <input
+                  type="password"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder="sk-or-..."
+                  className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-card-foreground">Model</label>
+                <select
+                  value={modelId}
+                  onChange={(e) => setModelId(e.target.value)}
+                  className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {MODELS.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex gap-3 flex-wrap">
+                <Button
+                  variant="outline"
+                  disabled={messages.length === 0}
+                  onClick={downloadMarkdown}
+                  title={'Download conversation as Markdown (includes image links).'}
+                >
+                  Download Markdown
+                </Button>
+              </div>
+
+              {error ? (
+                <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-foreground">
+                  {error}
+                </div>
+              ) : null}
             </div>
-          ) : null}
+          )}
         </div>
 
         <div className="rounded-lg border bg-card p-4 space-y-3">
-          <div className="h-80 overflow-auto rounded-md border bg-background p-3 space-y-4">
+          <div className="h-80 min-h-40 max-h-[70vh] resize-y overflow-auto rounded-md border bg-background p-3 space-y-4">
             {messages.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 No messages yet.
@@ -220,7 +249,10 @@ function App() {
                             className="max-w-full rounded-md border"
                           />
                           <Button asChild variant="outline" size="sm">
-                            <a href={url} download={`image-${imageIndex + 1}.png`}>
+                            <a
+                              href={url}
+                              download={`image-${m.createdAt}-${imageIndex + 1}.${imageExtensionFromDataUrl(url)}`}
+                            >
                               Download image
                             </a>
                           </Button>

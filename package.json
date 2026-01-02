@@ -8,7 +8,7 @@
     "dev": "vite",
     "build:renderer": "vite build",
     "build:main": "esbuild src/main.ts --bundle --platform=node --outfile=dist/main.js --external:electron --format=esm",
-    "build:preload": "esbuild src/preload.ts --bundle --platform=node --outfile=dist/preload.js --external:electron --format=esm",
+    "build:preload": "esbuild src/preload.ts --bundle --platform=node --outfile=dist/preload.cjs --external:electron --format=cjs",
     "build": "npm run build:renderer && npm run build:main && npm run build:preload",
     "start": "npm run build && electron . --no-sandbox",
     "test": "echo \"Error: no test specified\" && exit 1"

@@ -2,6 +2,32 @@
 
 This is a starter kit for an Electron app that uses Vite, TypeScript, React, Tailwind CSS, and shadcn/ui.
 
+## Attribution
+
+This starter kit is based on and inspired by the tutorial “Create Electron App” by Roman Ďurek, published on December 5, 2024.
+
+## Original article:
+https://dev.bwrd.eu/blogs/create-electron-app
+
+The implementation in this repository adapts and extends the original instructions for instructional use within the Future Fiction Academy learning environment.
+
+## Contributing
+
+While this repository is primarily maintained for Future Fiction Academy members, community contributions are welcome.
+
+If you’d like to contribute improvements, fixes, or extensions:
+- Fork the repository
+- Create a feature branch
+- Submit a pull request with a clear description of your changes
+- All contributions are reviewed to ensure they align with the educational goals and stability of the starter kit.
+
+## Intended Audience
+This project is especially well-suited for:
+- Authors and educators exploring desktop tooling
+- Indie developers learning Electron + React workflows
+- Technologists experimenting with AI-assisted or creative software projects
+- Students following Future Fiction Academy courses or workshops
+
 ## Features
 
 The starter kit includes:
@@ -97,5 +123,8 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 ```
 
+## License
 
+This project is licensed under the MIT License.  
+See the LICENSE file for details.
 

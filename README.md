@@ -31,12 +31,13 @@ This project is especially well-suited for:
 ## Features
 
 The starter kit includes:
-- **Electron** - Desktop application framework
-- **Vite** - Fast build tool and dev server
-- **TypeScript** - Type-safe development with path aliases (@/)
-- **React** - UI framework with ReactDOM createRoot
-- **Tailwind CSS** - Utility-first CSS framework
+- **Electron** - Desktop application framework with secure defaults (contextIsolation enabled, nodeIntegration disabled)
+- **Vite** - Fast build tool and dev server with hot module replacement
+- **TypeScript** - Strict type-safe development with path aliases (@/) and modern `react-jsx` transform
+- **React** - UI framework with modern ReactDOM createRoot API
+- **Tailwind CSS** - Utility-first CSS framework with neutral theme and CSS variables
 - **shadcn/ui** - Beautiful, accessible component library
+- **ES Modules** - Modern module system throughout (main process uses ESM)
 
 ## Getting Started
 
@@ -57,14 +58,22 @@ npm run start
 This command will:
 1. Build the renderer process with Vite
 2. Build the main process with esbuild
+3. Build the preload script with esbuild
 3. Launch the Electron app
 
 ### Development
+
+**Option 1: Full development with Electron (recommended)**
+```bash
+npm run start
+```
+This builds and launches the full Electron app. Make changes to the code, then run this command again to see updates.
+
+**Option 2: Renderer development only**
 ```bash
 npm run dev
 ```
-
-Run Vite dev server for the renderer process.
+This runs the Vite dev server with hot module replacement for fast UI iteration. However, it won't launch the Electron window—use this when you only need to work on the React UI.
 
 ### Build
 ```bash
@@ -78,6 +87,7 @@ Build both main and renderer processes for production.
 ```
 ├── src/
 │   ├── main.ts              # Electron main process
+│   ├── preload.ts           # Secure bridge (contextBridge) for IPC
 │   ├── renderer.tsx         # React app entry point
 │   ├── app.tsx              # Main React component
 │   ├── index.css            # Global styles with Tailwind directives
@@ -121,6 +131,44 @@ Example:
 ```typescript
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+```
+
+## Architecture Notes
+
+### Security Model
+- **Context Isolation**: Enabled (renderer process is isolated from Node.js)
+- **Node Integration**: Disabled (renderer cannot directly access Node.js APIs)
+- **IPC**: Implemented via `contextBridge` for `openExternal` (see `preload.ts` + `ipcMain.handle` in `main.ts`)
+
+### Build System
+This project uses a **dual-build system**:
+1. **Renderer** (React UI): Built by Vite → `dist/` folder
+2. **Main** (Electron): Built by esbuild → `dist/main.js`
+3. **Preload** (IPC bridge): Built by esbuild → `dist/preload.js`
+
+The main process uses ES modules (`"type": "module"` in package.json), requiring `import.meta.url` for `__dirname` polyfill.
+
+### TypeScript Configuration
+- Uses modern `react-jsx` transform (no need to import React in every file)
+- Strict mode enabled with `noUnusedLocals` and `noUnusedParameters`
+- Path aliases configured in both `tsconfig.json` and `vite.config.ts`
+
+## AI-Assisted Development
+
+This project includes comprehensive AI coding instructions in [`.github/copilot-instructions.md`](.github/copilot-instructions.md) to help GitHub Copilot and other AI assistants understand the codebase architecture and conventions.
+
+## Health Checks
+
+Verify code quality with:
+```bash
+# Type checking
+npx tsc --noEmit
+
+# Security audit
+npm audit
+
+# Build verification
+npm run build
 ```
 
 ## License

@@ -53,6 +53,62 @@ function extractText(content) {
   return '';
 }
 
+function extractMarkdownLinks(text) {
+  if (typeof text !== 'string' || !text) return [];
+  const links = [];
+  const re = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+  let match;
+  while ((match = re.exec(text))) {
+    links.push({ label: match[1], url: match[2] });
+  }
+  // Dedupe by URL.
+  const seen = new Set();
+  return links.filter((l) => {
+    if (seen.has(l.url)) return false;
+    seen.add(l.url);
+    return true;
+  });
+}
+
+function extractUrlCitations(message) {
+  const annotations = message && typeof message === 'object' ? message.annotations : undefined;
+  if (!Array.isArray(annotations)) return [];
+
+  return annotations
+    .filter((a) => a && typeof a === 'object' && a.type === 'url_citation' && a.url_citation)
+    .map((a) => {
+      const c = a.url_citation;
+      return {
+        url: typeof c.url === 'string' ? c.url : null,
+        title: typeof c.title === 'string' ? c.title : null,
+        content: typeof c.content === 'string' ? c.content : null,
+        start_index: typeof c.start_index === 'number' ? c.start_index : null,
+        end_index: typeof c.end_index === 'number' ? c.end_index : null,
+      };
+    })
+    .filter((c) => typeof c.url === 'string' && c.url.length > 0);
+}
+
+function extractWebCitations(message) {
+  const urlCitations = extractUrlCitations(message);
+  if (urlCitations.length) {
+    return urlCitations.map((c) => ({ ...c, source: 'annotations' }));
+  }
+
+  // Fallback: if the model includes citations as markdown links in content.
+  const content = message && typeof message === 'object' ? message.content : undefined;
+  const text = extractText(content);
+  const links = extractMarkdownLinks(text);
+  return links.map((l) => ({
+    url: l.url,
+    title: l.label,
+    content: null,
+    start_index: null,
+    end_index: null,
+    source: 'markdown',
+  }));
+}
+
 function parseDataUrl(dataUrl) {
   // data:image/png;base64,....
   const match = /^data:([^;]+);base64,(.+)$/.exec(dataUrl);
@@ -99,6 +155,16 @@ async function main() {
     process.env.OPENROUTER_KEY ||
     process.env.OPENROUTER_API_TOKEN;
 
+  const textModel =
+    process.env.OPENROUTER_TEXT_MODEL ||
+    process.env.TEXT_MODEL ||
+    'openai/gpt-5.2-chat';
+
+  const imageModel =
+    process.env.OPENROUTER_IMAGE_MODEL ||
+    process.env.IMAGE_MODEL ||
+    'google/gemini-3-pro-image-preview';
+
   if (!apiKey) {
     throw new Error(
       'Missing OPENROUTER_API_KEY (or OPENROUTER_KEY / OPENROUTER_API_TOKEN) in environment/.env'
@@ -112,15 +178,29 @@ async function main() {
   const summary = {
     startedAt: new Date().toISOString(),
     outputsDir: path.relative(repoRoot, runDir),
-    text: { model: 'openai/gpt-5.2-chat', ok: false, contentLength: 0 },
-    image: { model: 'google/gemini-3-pro-image-preview', ok: false, images: 0, contentLength: 0 },
+    text: { model: textModel, ok: false, contentLength: 0, urlCitations: 0 },
+    image: { model: imageModel, ok: false, images: 0, contentLength: 0 },
   };
 
   // 1) Text model
   try {
     const textBody = {
       model: summary.text.model,
-      messages: [{ role: 'user', content: 'Write 3 short paragraphs about the weather in Spain.' }],
+      // Explicitly enable web search plugin (even if using a :online model).
+      // https://openrouter.ai/docs/guides/features/plugins/web-search
+      plugins: [
+        {
+          id: 'web',
+          max_results: 3,
+        },
+      ],
+      messages: [
+        {
+          role: 'user',
+          content:
+            "Use web search. What is the current weather in Madrid, Spain right now? Give 3 short bullets and include at least 2 citations as markdown links (e.g. [example.com](https://example.com/...)).",
+        },
+      ],
     };
 
     const textJson = await openRouterCall({ apiKey, body: textBody });
@@ -128,9 +208,16 @@ async function main() {
 
     const msg = textJson?.choices?.[0]?.message;
     const content = extractText(msg?.content);
+    const urlCitations = extractWebCitations(msg);
 
     summary.text.ok = true;
     summary.text.contentLength = content.length;
+    summary.text.urlCitations = urlCitations.length;
+
+    await fs.writeFile(
+      path.join(runDir, 'text-web-citations.json'),
+      JSON.stringify(urlCitations, null, 2)
+    );
 
     await fs.writeFile(
       path.join(runDir, 'text-extracted.txt'),
@@ -152,7 +239,7 @@ async function main() {
         {
           role: 'user',
           content:
-            'Generate a warm, cheerful illustration of a happy puppy greeting a family returning home from the beach. Golden-hour lighting, sandy footprints, beach towels and a surfboard near the doorway, friendly vibe.',
+            'Generate a warm, cheerful illustration of a happy puppy greeting a family returning home from the beach. Golden-hour lighting, sandy footprints, beach towels and a surfboard near the doorway, friendly vibe. ONLY RETURN 1 IMAGE.',
         },
       ],
       modalities: ['image', 'text'],
@@ -201,7 +288,7 @@ async function main() {
   console.log('OpenRouter smoke test complete');
   console.log(`Outputs: ${summary.outputsDir}`);
   console.log(
-    `Text: ${summary.text.ok ? 'OK' : 'FAIL'} (${summary.text.model}) len=${summary.text.contentLength}`
+    `Text: ${summary.text.ok ? 'OK' : 'FAIL'} (${summary.text.model}) len=${summary.text.contentLength} citations=${summary.text.urlCitations}`
   );
   console.log(
     `Image: ${summary.image.ok ? 'OK' : 'FAIL'} (${summary.image.model}) images=${summary.image.images} len=${summary.image.contentLength}`

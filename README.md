@@ -30,7 +30,15 @@ This project is especially well-suited for:
 
 ## Features
 
-The starter kit includes:
+This branch includes a minimal **Simple Chatbot** app built on the starter kit:
+- **OpenRouter chat + image generation** - Send text prompts or request image outputs
+- **Session-only API key** - Key is kept in memory (not written to disk)
+- **Model picker** - Two curated models listed in `docs/`
+- **Downloads**
+	- Chat export as Markdown (includes image links)
+	- Image downloads with timestamps in filenames
+
+The underlying starter kit includes:
 - **Electron** - Desktop application framework with secure defaults (contextIsolation enabled, nodeIntegration disabled)
 - **Vite** - Fast build tool and dev server with hot module replacement
 - **TypeScript** - Strict type-safe development with path aliases (@/) and modern `react-jsx` transform
@@ -59,7 +67,7 @@ This command will:
 1. Build the renderer process with Vite
 2. Build the main process with esbuild
 3. Build the preload script with esbuild
-3. Launch the Electron app
+4. Launch the Electron app
 
 ### Development
 
@@ -85,6 +93,9 @@ Build both main and renderer processes for production.
 ## Project Structure
 
 ```
+├── docs/
+│   ├── ABOUT_CHATGPT_5.2_CHAT.md
+│   └── ABOUT_NANO_BANANA_PRO.md
 ├── src/
 │   ├── main.ts              # Electron main process
 │   ├── preload.ts           # Secure bridge (contextBridge) for IPC
@@ -96,6 +107,9 @@ Build both main and renderer processes for production.
 │   │       └── button.tsx   # shadcn/ui Button component
 │   └── lib/
 │       └── utils.ts         # Utility functions (cn helper)
+├── tests/
+│   ├── openrouter-smoke.mjs  # Smoke test for both OpenRouter models
+│   └── out/                  # Test outputs (ignored)
 ├── index.html               # HTML entry point with root div
 ├── vite.config.ts           # Vite configuration with @ alias
 ├── tsconfig.json            # TypeScript configuration (jsx: react-jsx, paths)
@@ -138,13 +152,13 @@ import { cn } from '@/lib/utils'
 ### Security Model
 - **Context Isolation**: Enabled (renderer process is isolated from Node.js)
 - **Node Integration**: Disabled (renderer cannot directly access Node.js APIs)
-- **IPC**: Implemented via `contextBridge` for `openExternal` (see `preload.ts` + `ipcMain.handle` in `main.ts`)
+- **IPC**: Implemented via `contextBridge` for `openExternal` and `openRouterChat` (see `preload.ts` + `ipcMain.handle` in `main.ts`)
 
 ### Build System
-This project uses a **dual-build system**:
+This project uses a **multi-build system**:
 1. **Renderer** (React UI): Built by Vite → `dist/` folder
 2. **Main** (Electron): Built by esbuild → `dist/main.js`
-3. **Preload** (IPC bridge): Built by esbuild → `dist/preload.js`
+3. **Preload** (IPC bridge): Built by esbuild → `dist/preload.cjs`
 
 The main process uses ES modules (`"type": "module"` in package.json), requiring `import.meta.url` for `__dirname` polyfill.
 
@@ -170,6 +184,31 @@ npm audit
 # Build verification
 npm run build
 ```
+
+## OpenRouter Smoke Test
+
+This repo includes a simple smoke test for both models used by the app.
+
+1. Create a `.env` file in the repo root with one of:
+	- `OPENROUTER_API_KEY=...`
+	- `OPENROUTER_KEY=...`
+	- `OPENROUTER_API_TOKEN=...`
+
+2. Add the model IDs to test:
+	- `TEXT_MODEL=...`
+	- `IMAGE_MODEL=...`
+
+	(Alternatively, you can use `OPENROUTER_TEXT_MODEL` and `OPENROUTER_IMAGE_MODEL`.)
+
+3. Run:
+
+```bash
+node tests/openrouter-smoke.mjs
+```
+
+It writes a timestamped folder under `tests/out/` with JSON responses and any returned images.
+
+If your text model uses web search (e.g. `:online`), the test also writes parsed URL citations to `text-web-citations.json`.
 
 ## License
 

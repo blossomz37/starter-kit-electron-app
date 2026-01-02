@@ -1,6 +1,8 @@
-# starter-kit-electron-app
+# starter-kit-electron-app (simple-chatbot branch)
 
-This is a starter kit for an Electron app that uses Vite, TypeScript, React, Tailwind CSS, and shadcn/ui.
+This branch is an **example implementation** for Future Fiction Academy (FFA) members.
+
+It builds on the original Electron + React starter kit and demonstrates how to make **safe API calls for both text chat and image generation** (via OpenRouter) while keeping the renderer sandboxed (`contextIsolation: true`, `nodeIntegration: false`).
 
 ## Attribution
 
@@ -28,13 +30,20 @@ This project is especially well-suited for:
 - Technologists experimenting with AI-assisted or creative software projects
 - Students following Future Fiction Academy courses or workshops
 
-## Features
-
 ## Preview
 
 ![Simple Chatbot preview](simple_chatbot_screenshot.jpg)
 
-This branch includes a minimal **Simple Chatbot** app built on the starter kit:
+## What This Branch Demonstrates
+
+- **Secure Electron IPC pattern**: renderer → preload (`contextBridge`) → main process (`ipcMain.handle`) → network
+- **OpenRouter text chat + image generation** from a minimal UI
+- **Session-only API key**: stored in memory only (not written to disk)
+- **A simple smoke test** script that hits both models and writes outputs under `tests/out/`
+
+## App Features
+
+This branch includes a minimal **Simple Chatbot** app:
 - **OpenRouter chat + image generation** - Send text prompts or request image outputs
 - **Session-only API key** - Key is kept in memory (not written to disk)
 - **Model picker** - Two curated models listed in `docs/`
@@ -44,7 +53,9 @@ This branch includes a minimal **Simple Chatbot** app built on the starter kit:
 
 Note: The Markdown export links images by filename (it does not embed base64 data URLs).
 
-The underlying starter kit includes:
+## Under The Hood (Starter Kit)
+
+This branch keeps the original starter kit stack:
 - **Electron** - Desktop application framework with secure defaults (contextIsolation enabled, nodeIntegration disabled)
 - **Vite** - Fast build tool and dev server with hot module replacement
 - **TypeScript** - Strict type-safe development with path aliases (@/) and modern `react-jsx` transform
@@ -195,18 +206,18 @@ npm run build
 
 This repo includes a simple smoke test for both models used by the app.
 
-1. Create a `.env` file in the repo root with one of:
+1. Open `.env.template`, fill in your values, then rename it to `.env` (remove the `.template` extension).
+
+	Recommended variables:
 	- `OPENROUTER_API_KEY=...`
-	- `OPENROUTER_KEY=...`
-	- `OPENROUTER_API_TOKEN=...`
+	- `OPENROUTER_TEXT_MODEL=...`
+	- `OPENROUTER_IMAGE_MODEL=...`
 
-2. Add the model IDs to test:
-	- `TEXT_MODEL=...`
-	- `IMAGE_MODEL=...`
+	Also supported:
+	- `OPENROUTER_KEY` / `OPENROUTER_API_TOKEN` (API key)
+	- `TEXT_MODEL` / `IMAGE_MODEL` (model IDs)
 
-	(Alternatively, you can use `OPENROUTER_TEXT_MODEL` and `OPENROUTER_IMAGE_MODEL`.)
-
-3. Run:
+2. Run:
 
 ```bash
 node tests/openrouter-smoke.mjs
